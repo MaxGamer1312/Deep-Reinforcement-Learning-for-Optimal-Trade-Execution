@@ -34,7 +34,7 @@ class Environment():
         current_share_ask_index = 0
         current_share_ask_list = self.order_book.get_asks()
         while(current_shares_left != 0 and self.current_market_event_index < len(self.episode_data)):
-            if(current_share_ask_index >= len(current_share_ask_list)):
+            while(not current_share_ask_list or current_share_ask_index >= len(current_share_ask_list)):
                 self.current_market_event_index += 1
                 if(self.current_market_event_index >= len(self.episode_data)):
                     break
@@ -42,7 +42,8 @@ class Environment():
                 current_share_ask_index = 0
                 self.order_book.update(self.current_market_event)
                 current_share_ask_list = self.order_book.get_asks()
-
+            if(self.current_market_event_index >= len(self.episode_data)):
+                break
             current_share_ask = current_share_ask_list[current_share_ask_index]
             prev_shares_left = current_shares_left
             current_shares_left = max(0, current_shares_left - current_share_ask['size'])
@@ -80,6 +81,7 @@ class Environment():
         return state
     
     def _get_random_valid_date(self):
+        self.data['ts_event'] = pd.to_datetime(self.data['ts_event'])
         valid_dates = self.data[self.data['ts_event'] + self.time_window <= self.data['ts_event'].max()]['ts_event'].unique()
         random_date = random.choice(valid_dates)
         return random_date

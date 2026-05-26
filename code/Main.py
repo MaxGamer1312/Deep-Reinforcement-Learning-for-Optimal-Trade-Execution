@@ -7,16 +7,15 @@ from Agent import Agent
 FILENAME = '../data/XNAS-20260524-6NCFWMPDHH/xnas-itch-20240523-20260522.mbo.csv.zst'
 
 # ENVIRONMENT
-TARGET_ORDER_SIZE = 10_000
-TIME_WINDOW = pd.Timedelta(days=7)
-TRANSACTION_COST = 0.01
+TARGET_ORDER_SIZE = 100
+TIME_WINDOW = pd.Timedelta(hours=1)
+TRANSACTION_COST = 0.001
 
 # AGENT
 LEARNING_RATE = 0.0003
 GAMMA = 0.99
 EPSILON = 0.2
 NUMBER_OF_EPISODES = 1000
-
 
 def decompress(file_name, num_data_points):
     dctx = zstd.ZstdDecompressor()
@@ -26,6 +25,10 @@ def decompress(file_name, num_data_points):
     return df
 
 if __name__ == "__main__":
-    data = decompress(FILENAME,1_000_000)
+    data = decompress(FILENAME,10_000)
+    print(data.columns)
+    print(pd.to_datetime(data['ts_event']))
     environment = Environment(data, TARGET_ORDER_SIZE, TIME_WINDOW, TRANSACTION_COST)
     agent = Agent(environment, LEARNING_RATE, GAMMA, EPSILON, NUMBER_OF_EPISODES)
+    print(agent.device)
+    agent.train()
