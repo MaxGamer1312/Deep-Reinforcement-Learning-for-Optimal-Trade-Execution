@@ -2,6 +2,8 @@ import pandas as pd
 import zstandard as zstd
 from Environment import Environment
 from Agent import Agent
+import torch
+
 # TODO: config file
 # MAIN
 FILENAME = '../data/XNAS-20260524-6NCFWMPDHH/xnas-itch-20240523-20260522.mbo.csv.zst'
@@ -15,7 +17,7 @@ TRANSACTION_COST = 0.001
 LEARNING_RATE = 0.0003
 GAMMA = 0.99
 EPSILON = 0.2
-NUMBER_OF_EPISODES = 1000
+NUMBER_OF_EPISODES = 100
 
 def decompress(file_name, num_data_points):
     dctx = zstd.ZstdDecompressor()
@@ -32,3 +34,4 @@ if __name__ == "__main__":
     agent = Agent(environment, LEARNING_RATE, GAMMA, EPSILON, NUMBER_OF_EPISODES)
     print(agent.device)
     agent.train()
+    torch.save(agent.state_dict(), '../models/trained_agent.pth')

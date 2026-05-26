@@ -3,15 +3,18 @@ import random
 from OrderBook import OrderBook
 
 class Environment():
-    def __init__(self, data, target_order_size, time_window, transaction_costs):
+    def __init__(self, data, target_order_size, time_window, transaction_costs, valid_date = None):
         self.data = data
         self.target_order_size = target_order_size
         self.time_window = time_window
         self.transaction_costs = transaction_costs
-        self.reset()
+        self.reset(valid_date)
 
-    def reset(self):
-        random_start_date = self._get_random_valid_date()
+    def reset(self, valid_date = None):
+        if valid_date:
+            random_start_date = valid_date
+        else:
+            random_start_date = self.get_random_valid_date()
         self.shares_bought = 0
         self.current_cost = 0
         self.start_market_event = self.data[self.data['ts_event'] == random_start_date].sort_values(by='ts_event').iloc[0]
@@ -65,22 +68,25 @@ class Environment():
     def get_state(self):
         state = {}
         #TODO: normalize features?
-        state['current_price'] = self.current_market_event['price']
-        state['shares_remaining_to_buy'] = self.target_order_size - self.shares_bought
-        state['shares_bought'] = self.shares_bought
-        state['time_remaining'] = (self.end_time - self.current_market_event['ts_event']).total_seconds()
+        state['current_price'] = self.current_market_event['price'] / 1000
+        state['shares_remaining_to_buy'] = (self.target_order_size - self.shares_bought) / self.target_order_size
+        state['shares_bought'] = self.shares_bought / self.target_order_size
+        state['time_remaining'] = (self.end_time - self.current_market_event['ts_event']).total_seconds() / pd.Timedelta(self.time_window).total_seconds()
         if(self.shares_bought == 0):
             state['average_execution_price'] = 0
         else:
-            state['average_execution_price'] = self.current_cost / self.shares_bought
+            state['average_execution_price'] = (self.current_cost / self.shares_bought) / 1000
         current_market_price_list = self.episode_data[(self.episode_data['ts_event'] >= self.start_market_event['ts_event']) & (self.episode_data['ts_event'] <= self.current_market_event['ts_event'])]['price']
         if(len(current_market_price_list) < 2):
             state['current_market_volatility'] = 0
         else:
-            state['current_market_volatility'] = current_market_price_list.std()
+            state['current_market_volatility'] = current_market_price_list.std() / 10
         return state
     
-    def _get_random_valid_date(self):
+    def get_episode_data(self):
+        return self.episode_data
+    
+    def get_random_valid_date(self):
         self.data['ts_event'] = pd.to_datetime(self.data['ts_event'])
         valid_dates = self.data[self.data['ts_event'] + self.time_window <= self.data['ts_event'].max()]['ts_event'].unique()
         random_date = random.choice(valid_dates)

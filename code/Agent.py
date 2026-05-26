@@ -67,10 +67,12 @@ class Agent(nn.Module):
             critic_loss = nn.functional.mse_loss(predicted_reward, reward)
             total_loss = total_loss + actor_loss + critic_loss
         total_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm = 0.5)
         self.optimizer.step()
         self.experience_buffer = []
 
     def train(self):
+        count = 0
         for _ in range(self.number_of_episodes):
             is_done = False
             self.environment.reset()
@@ -79,9 +81,12 @@ class Agent(nn.Module):
                 action, log_prob_action = self.select_action(state)
                 state, reward, is_done = self.environment.step(action)
                 state_tensor = torch.tensor(list(state.values()), dtype=torch.float32).to(self.device)
-                reward_tensor = torch.tensor(reward, dtype=torch.float32).to(self.device)
+                reward_tensor = torch.tensor(float(reward), dtype=torch.float32).to(self.device)
                 _, result_critic = self.forward(state_tensor)
                 self.store_experience(state_tensor, action, reward_tensor, log_prob_action, result_critic)
             self.update()
+            count += 1
+            if count % 10 == 0:
+                print(f"{count} number of episodes have been completed!")
 
     
