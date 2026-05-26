@@ -1,14 +1,26 @@
 import pandas as pd
 import random
 from OrderBook import OrderBook
+import copy
 
 class Environment():
-    def __init__(self, data, target_order_size, time_window, transaction_costs, valid_date = None):
+    def __init__(self, data, target_order_size, time_window, transaction_costs, valid_date = None, all_order_books = None):
+        print("start")
         self.data = data
         self.target_order_size = target_order_size
         self.time_window = time_window
         self.transaction_costs = transaction_costs
+        self.temp_order_book = OrderBook()
+        self.data['ts_event'] = pd.to_datetime(self.data['ts_event'])
+        if all_order_books:
+            self.all_order_books = all_order_books
+        else:
+            self.all_order_books = {}
+            for row, market_event in data.iterrows():
+                self.temp_order_book.update(market_event)
+                self.all_order_books[row] = copy.deepcopy(self.temp_order_book.active_orders)
         self.reset(valid_date)
+        print("done")
 
     def reset(self, valid_date = None):
         if valid_date:
@@ -24,9 +36,9 @@ class Environment():
         self.current_market_event_index = 0
         self.episode_data = self.data[(self.data['ts_event'] >= random_start_date) & (self.data['ts_event'] <= self.end_time)].sort_values(by='ts_event')
         self.order_book = OrderBook()
-        all_market_events_before_and_including_start = self.data[self.data['ts_event'] <= random_start_date].sort_values(by='ts_event')
-        for _, market_event in all_market_events_before_and_including_start.iterrows():
-            self.order_book.update(market_event)
+        if self.start_market_event.name not in self.all_order_books:
+            raise KeyError(f"Timestamp {random_start_date} not found in order book snapshots")
+        self.order_book.active_orders = copy.deepcopy(self.all_order_books[self.start_market_event.name])
 
     def step(self, shares_wanted):
         if(shares_wanted < 0):
@@ -82,7 +94,8 @@ class Environment():
         else:
             state['current_market_volatility'] = current_market_price_list.std() / 10
         return state
-    
+    def get_all_order_books(self):
+        return self.all_order_books
     def get_episode_data(self):
         return self.episode_data
     
@@ -97,7 +110,7 @@ class Environment():
         return self.shares_bought == self.target_order_size
     
     def get_random_valid_date(self):
-        self.data['ts_event'] = pd.to_datetime(self.data['ts_event'])
+        
         valid_dates = self.data[self.data['ts_event'] + self.time_window <= self.data['ts_event'].max()]['ts_event'].unique()
         random_date = random.choice(valid_dates)
         return random_date
