@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import zstandard as zstd
 from Environment import Environment
@@ -44,18 +45,69 @@ if __name__ == "__main__":
         agent_environment.reset(valid_start_date)
         twap_environment.reset(valid_start_date)
         
+        state = agent_environment.get_state()
         is_done = False
         total_reward = 0
-        total_slippage = 0
-        is_order_completed = True
         num_of_steps = 0
+        episode_state = {}
         while not is_done:
-            action, log_prob_action = agent.select_action(state)
+            action, _ = agent.select_action(state)
             state, reward, is_done = agent_environment.step(action)
+            total_reward += reward
+            num_of_steps += 1
+        episode_state['total_reward'] = total_reward
+        episode_state['num_of_steps'] = num_of_steps
+        episode_state['total_slippage'] = agent_environment.get_average_execution_price() - agent_environment.get_start_price()
+        episode_state['is_order_completed'] = agent_environment.get_is_order_completed()
+        agent_metric_data.append(episode_state)
 
         is_done = False
+        total_reward = 0
+        num_of_steps = 0
+        episode_state = {}
         while not is_done:
+            action = TARGET_ORDER_SIZE / len(twap_environment.get_episode_data())
+            _, reward, is_done = twap_environment.step(action)
+            total_reward += reward
+            num_of_steps += 1
+        episode_state['total_reward'] = total_reward
+        episode_state['num_of_steps'] = num_of_steps
+        episode_state['total_slippage'] = twap_environment.get_average_execution_price() - twap_environment.get_start_price()
+        episode_state['is_order_completed'] = twap_environment.get_is_order_completed()
+        twap_metric_data.append(episode_state)
 
+        agent_df = pd.DataFrame(agent_metric_data)
+        twap_df = pd.DataFrame(twap_metric_data)
 
-    
-        
+        fig, axes = plt.subplots(2,2)
+        fig.suptitle("Agent vs TWAP")
+        axes[0][0].plot(len(agent_df), agent_df['total_reward'], label = 'agent', color = 'blue', marker = 'o')
+        axes[0][0].plot(len(twap_df), twap_df['total_reward'], label = 'twap', color = 'red', marker = 'o')
+        axes[0][0].title("Agent vs TWAP: Total Reward")
+        axes[0][0].xlabel("Episode number")
+        axes[0][0].ylabel("Total Reward")
+        axes[0][0].legend()
+
+        axes[0][1].plot(len(agent_df), agent_df['num_of_steps'], label = 'agent', color = 'blue', marker = 'o')
+        axes[0][1].plot(len(twap_df), twap_df['num_of_steps'], label = 'twap', color = 'red', marker = 'o')
+        axes[0][1].title("Agent vs TWAP: Number of steps")
+        axes[0][1].xlabel("Episode number")
+        axes[0][1].ylabel("Number of steps")
+        axes[0][1].legend()
+
+        axes[1][0].plot(len(agent_df), agent_df['num_of_steps'], label = 'agent', color = 'blue', marker = 'o')
+        axes[1][0].plot(len(twap_df), twap_df['num_of_steps'], label = 'twap', color = 'red', marker = 'o')
+        axes[1][0].title("Agent vs TWAP: Number of steps")
+        axes[1][0].xlabel("Episode number")
+        axes[1][0].ylabel("Total Slippage")
+        axes[1][0].legend()
+
+        axes[1][1].bar(['Agent', 'TWAP'], [agent_df['num_of_steps'].sum(), twap_df['num_of_steps'].sum()], color = 'blue')
+        axes[1][1].title("Agent vs TWAP: Number of steps")
+        axes[1][1].xlabel("Number of steps")
+        axes[1][1].ylabel("Algorithm")
+        axes[1][1].legend()
+
+        fig.tight_layout()
+        fig.show()
+

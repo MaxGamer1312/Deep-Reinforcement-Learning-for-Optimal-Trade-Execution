@@ -86,6 +86,16 @@ class Environment():
     def get_episode_data(self):
         return self.episode_data
     
+    def get_average_execution_price(self):
+        if self.shares_bought == 0:
+            return 0
+        return self.current_cost / self.shares_bought
+    def get_start_price(self):
+        return self.start_price
+    def get_is_order_completed(self):
+        # TODO: can you buy more than the target order size?
+        return self.shares_bought == self.target_order_size
+    
     def get_random_valid_date(self):
         self.data['ts_event'] = pd.to_datetime(self.data['ts_event'])
         valid_dates = self.data[self.data['ts_event'] + self.time_window <= self.data['ts_event'].max()]['ts_event'].unique()
