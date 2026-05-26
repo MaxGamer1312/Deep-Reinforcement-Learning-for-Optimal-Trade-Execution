@@ -68,6 +68,17 @@ class Agent(nn.Module):
         self.experience_buffer = []
 
     def train(self):
-        
+        for _ in range(self.number_of_episodes):
+            is_done = False
+            self.environment.reset()
+            state = self.environment.get_state()
+            state_tensor = torch.tensor(list(state.values()), dtype=torch.float32)
+            while not is_done:
+                action, log_prob_action = self.select_action(state_tensor)
+                state, reward, is_done = self.environment.step(action)
+                state_tensor = torch.tensor(list(state.values()), dtype=torch.float32)
+                _, result_critic = self.forward(state_tensor)
+                self.store_experience(state_tensor, action, reward, log_prob_action, result_critic)
+            self.update()
 
     

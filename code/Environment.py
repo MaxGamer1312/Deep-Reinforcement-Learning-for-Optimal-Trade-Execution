@@ -16,7 +16,7 @@ class Environment():
         self.current_cost = 0
         self.start_market_event = self.data[self.data['ts_event'] == random_start_date].sort_values(by='ts_event').iloc[0]
         self.current_market_event = self.start_market_event
-        self.end_time = self.start_market_event['ts_event'] + pd.Timedelta(days=self.time_window)
+        self.end_time = self.start_market_event['ts_event'] + self.time_window
         self.start_price = self.current_market_event['price']
         self.current_market_event_index = 0
         self.episode_data = self.data[(self.data['ts_event'] >= random_start_date) & (self.data['ts_event'] <= self.end_time)].sort_values(by='ts_event')
@@ -80,7 +80,7 @@ class Environment():
         return state
     
     def _get_random_valid_date(self):
-        valid_dates = self.data[self.data['ts_event'] + pd.Timedelta(days=self.time_window) <= self.data['ts_event'].max()]['ts_event'].unique()
+        valid_dates = self.data[self.data['ts_event'] + self.time_window <= self.data['ts_event'].max()]['ts_event'].unique()
         random_date = random.choice(valid_dates)
         return random_date
         
