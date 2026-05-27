@@ -33,5 +33,5 @@ if __name__ == "__main__":
     environment = Environment(data, TARGET_ORDER_SIZE, TIME_WINDOW, TRANSACTION_COST)
     agent = Agent(environment, LEARNING_RATE, GAMMA, EPSILON, NUMBER_OF_EPISODES)
     print(agent.device)
-    agent.train()
+    agent.run_training()
     torch.save(agent.state_dict(), '../models/trained_agent.pth')

@@ -4,6 +4,7 @@ import zstandard as zstd
 from Environment import Environment
 from Agent import Agent
 import torch
+import os
 
 # TODO: config file
 # MAIN
@@ -20,6 +21,8 @@ GAMMA = 0.99
 EPSILON = 0.2
 NUMBER_OF_EPISODES = 100
 
+# ALL ORDER BOOK DATA
+ALL_ORDER_BOOKS_FILENAME = '../data/all_order_books_data.pkl'
 def decompress(file_name, num_data_points):
     dctx = zstd.ZstdDecompressor()
     with open(file_name, 'rb') as compressed_file:
@@ -31,13 +34,15 @@ if __name__ == "__main__":
     data = decompress(FILENAME,10_000)
     print(data.columns)
     print(pd.to_datetime(data['ts_event']))
+
     agent_environment = Environment(data, TARGET_ORDER_SIZE, TIME_WINDOW, TRANSACTION_COST)
+    print("done with agent environment")
     agent = Agent(agent_environment, LEARNING_RATE, GAMMA, EPSILON, NUMBER_OF_EPISODES)
     print(agent.device)
     agent.load_state_dict(torch.load('../models/trained_agent.pth'))
-
-    twap_environment = Environment(data, TARGET_ORDER_SIZE, TIME_WINDOW, TRANSACTION_COST, all_order_books = agent_environment.get_all_order_books())
-    
+    agent.eval()
+    twap_environment = Environment(data, TARGET_ORDER_SIZE, TIME_WINDOW, TRANSACTION_COST)
+    print("done with twap_environment")
     twap_metric_data = []
     agent_metric_data = []
     count = 0
@@ -111,5 +116,5 @@ if __name__ == "__main__":
     axes[1][1].set_ylabel("Orders completed")
 
     fig.tight_layout()
-    fig.show()
+    plt.show()
 

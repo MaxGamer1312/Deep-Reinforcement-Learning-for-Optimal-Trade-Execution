@@ -71,7 +71,7 @@ class Agent(nn.Module):
         self.optimizer.step()
         self.experience_buffer = []
 
-    def train(self):
+    def run_training(self):
         count = 0
         for _ in range(self.number_of_episodes):
             is_done = False
